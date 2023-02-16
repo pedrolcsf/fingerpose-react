@@ -4,9 +4,19 @@ import * as handpose from '@tensorflow-models/handpose'
 import Webcam from 'react-webcam'
 import { drawHand } from './utilities'
 
+import * as fp from 'fingerpose'
+import victory from './victory.png'
+import thumbs_up from './thumbs_up.png'
+
 function App() {
   const webcamRef = useRef(null)
   const canvasRef = useRef(null)
+
+  const [emoji, setEmoji] = useState(null)
+  const images = {
+    thumbs_up: thumbs_up,
+    victory: victory
+  }
 
   const runHandpose = async () => {
     const net = await  handpose.load()
@@ -14,7 +24,7 @@ function App() {
 
     setInterval(() => {
       detect(net)
-    }, 100)
+    }, 10)
   }
 
   const detect = async (net) => {
@@ -34,6 +44,21 @@ function App() {
       canvasRef.current.height = videoHeight
 
       const hand = await net.estimateHands(video)
+
+      if(hand.length > 0) {
+        const GE = new fp.GestureEstimator([
+          fp.Gestures.VictoryGesture,
+          fp.Gestures.ThumbsUpGesture,
+        ])
+
+        const gesture = await GE.estimate(hand[0].landmarks, 8)
+        if(gesture.gestures !== undefined && gesture.gestures.length > 0) {
+          const confidence = gesture.gestures.map((i) => i.confidence)
+          const maxConfidence = confidence.indexOf(Math.max.apply(null, confidence))
+          setEmoji(gesture.gestures[maxConfidence + 1].name)
+        }
+      }
+
       const ctx = canvasRef.current.getContext("2d")
       drawHand(hand, ctx)
     }
@@ -46,6 +71,7 @@ function App() {
       <Webcam
         ref={webcamRef}
         style={{
+          opacity:0,
           position: 'absolute',
           marginLeft: 'auto',
           marginRight: 'auto',
@@ -53,8 +79,8 @@ function App() {
           right: 0,
           textAlign: 'center',
           zIndex: 9,
-          width: 640,
-          height: 480
+          width: 800,
+          height: 600
         }}
       />
       <canvas
@@ -67,10 +93,21 @@ function App() {
           right: 0,
           textAlign: 'center',
           zIndex: 9,
-          width: 640,
-          height: 480
+          width: 800,
+          height: 600
         }}
        />
+       {emoji !== null ? <img src={images[emoji]} style={{
+        position: 'absolute',
+        marginLeft: "auto",
+        marginRight: "auto",
+        left: 400,
+        bottom: 400,
+        right: 0,
+        textAlign: "center",
+        height: 100,
+        zIndex: 20
+       }} /> : ""}
        </header>
     </div>
   )

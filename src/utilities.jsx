@@ -78,7 +78,7 @@ export const drawHand = (predictions, ctx) => {
 
         // Set line color
         ctx.fillStyle = style[i]["color"];
-        ctx.fill();
+        ctx.fill(); // draw the points fingers
       }
     });
   }
